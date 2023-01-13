@@ -1,0 +1,12 @@
+.idea/
+.cache/
+node_modules/
+dist/
+build/config.js
+*.log
+.vscode/
+.DS_Store
+.history
+/bash.exe.stackdump
+static/
+/build/config.txt
