@@ -6,7 +6,8 @@
   "scripts": {
     "start": "parcel ./src/index.html",
     "earth": "parcel ./src/earth.html",
-    "dog": "parcel ./src/dog.html"
+    "dog": "parcel ./src/dog.html",
+    "glsl": "parcel ./src/glsl.html"
   },
   "keywords": [],
   "author": "",
