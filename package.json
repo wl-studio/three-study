@@ -7,7 +7,8 @@
     "start": "parcel ./src/index.html",
     "earth": "parcel ./src/earth.html",
     "dog": "parcel ./src/dog.html",
-    "glsl": "parcel ./src/glsl.html"
+    "glsl": "parcel ./src/glsl.html",
+    "cannon": "parcel ./src/cannon.html"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +17,7 @@
     "parcel": "^2.8.2"
   },
   "dependencies": {
+    "cannon-es": "^0.20.0",
     "dat.gui": "^0.7.9",
     "three": "^0.148.0"
   }
