@@ -8,7 +8,8 @@
     "earth": "parcel ./src/earth.html",
     "dog": "parcel ./src/dog.html",
     "glsl": "parcel ./src/glsl.html",
-    "cannon": "parcel ./src/cannon.html"
+    "cannon": "parcel ./src/cannon.html",
+    "mouse-click": "parcel ./src/mouse-click.html"
   },
   "keywords": [],
   "author": "",
