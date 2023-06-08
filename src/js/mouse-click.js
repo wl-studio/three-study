@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import * as CANNON from 'cannon-es';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Sets the color of the background
-renderer.setClearColor(0xfefefe);
+renderer.shadowMap.enabled = true;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -20,7 +20,7 @@ const camera = new THREE.PerspectiveCamera(
 const orbit = new OrbitControls(camera, renderer.domElement);
 
 // Camera positioning
-camera.position.set(0, 6, 6);
+camera.position.set(0, 4, 10);
 orbit.update();
 
 const ambientLight = new THREE.AmbientLight(0x333333);
@@ -29,10 +29,28 @@ scene.add(ambientLight);
 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
 scene.add(directionalLight);
 directionalLight.position.set(0, 50, 0);
+directionalLight.castShadow = true;
+directionalLight.shadow.mapSize.width = 1024;
+directionalLight.shadow.mapSize.height = 1024;
 
-// Sets the x, y, and z axes with each having a length of 4
-const axesHelper = new THREE.AxesHelper(4);
-scene.add(axesHelper);
+const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -9.81, 0) });
+const planeGeo = new THREE.PlaneGeometry(10, 10);
+const planeMat = new THREE.MeshStandardMaterial({
+  color: 0xffffff,
+  side: THREE.DoubleSide,
+});
+const planeMesh = new THREE.Mesh(planeGeo, planeMat);
+scene.add(planeMesh);
+planeMesh.receiveShadow = true;
+
+const planePhysMat = new CANNON.Material();
+const planeBody = new CANNON.Body({
+  type: CANNON.Body.STATIC,
+  shape: new CANNON.Box(new CANNON.Vec3(5, 5, 0.001)),
+  material: planePhysMat
+});
+planeBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+world.addBody(planeBody);
 
 const mouse = new THREE.Vector2();
 const intersectionPoint = new THREE.Vector3();
@@ -40,34 +58,67 @@ const planeNormal = new THREE.Vector3();
 const plane = new THREE.Plane();
 const raycaster = new THREE.Raycaster();
 
-window.addEventListener('click', (e) => {
-  //   1.鼠标位置归一为设备坐标，x y 为-1 ～ 1之间的值
+window.addEventListener('mousemove', function (e) {
   mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-  //   2.向量转单位向量
-  //   向量表示：长度与方向
-  //   单位向量表示：方向
   planeNormal.copy(camera.position).normalize();
-  //   3.设置平面
   plane.setFromNormalAndCoplanarPoint(planeNormal, scene.position);
-  //   4.通过摄像机/鼠标位置更新射线
   raycaster.setFromCamera(mouse, camera);
-  //   5. 同步射线与平面相交的点给2参数
   raycaster.ray.intersectPlane(plane, intersectionPoint);
-
-  const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.125, 30, 30),
-    new THREE.MeshStandardMaterial({
-      color: 0xff00ff,
-      metalness: 0,
-      roughness: 0,
-    })
-  );
-  scene.add(mesh);
-  mesh.position.copy(intersectionPoint);
 });
 
+const meshes = [];
+const bodies = [];
+
+window.addEventListener('click', (e) => {
+  const sphereGeo = new THREE.SphereGeometry(0.125, 30, 30);
+  const sphereMat = new THREE.MeshStandardMaterial({
+    color: Math.random() * 0xffffff,
+    metalness: 0,
+    roughness: 0,
+  });
+  const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+  scene.add(sphereMesh);
+  sphereMesh.castShadow = true;
+
+  const spherePhysMat = new CANNON.Material()
+  const sphereBody = new CANNON.Body({
+    mass: 0.3,
+    shape: new CANNON.Sphere(0.125),
+    position: new CANNON.Vec3(
+      intersectionPoint.x,
+      intersectionPoint.y,
+      intersectionPoint.z
+    ),
+    material: spherePhysMat
+  });
+  world.addBody(sphereBody);
+
+  const planeSphereContactMat = new CANNON.ContactMaterial(
+    planePhysMat,
+    spherePhysMat,
+    { restitution: 0.3 }
+  )
+
+  world.addContactMaterial(planeSphereContactMat)
+
+  meshes.push(sphereMesh);
+  bodies.push(sphereBody);
+});
+
+const timestep = 1 / 60;
+
 function animate() {
+  world.step(timestep);
+
+  planeMesh.position.copy(planeBody.position);
+  planeMesh.quaternion.copy(planeBody.quaternion);
+
+  for (let i = 0; i < meshes.length; i++) {
+    meshes[i].position.copy(bodies[i].position);
+    meshes[i].quaternion.copy(bodies[i].quaternion);
+  }
+
   renderer.render(scene, camera);
 }
 
